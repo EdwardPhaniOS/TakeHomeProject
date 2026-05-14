@@ -7,24 +7,42 @@
 
 import Foundation
 
-@Observable
+@Observable @MainActor
 class ContentViewVM {
+    enum LoadState {
+        case loading, loaded, failed
+    }
+
     private(set) var articles: [Article] = []
+    private(set) var loadState: LoadState = .loading
+    private(set) var loadError: Error?
+    var filterText: String = ""
+
+    var filteredArticles: [Article] {
+        if filterText.isEmpty {
+            return articles
+        } else {
+            return articles.filter {
+                $0.title.localizedStandardContains(filterText)
+            }
+        }
+    }
 
     func loadArticles() async {
         let url = URL(string: "https://www.hackingwithswift.com/samples/news")!
         let request = URLRequest(url: url)
+        loadState = .loading
 
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let articles = try decoder.decode([Article].self, from: data)
-            await MainActor.run {
-                self.articles = articles
-            }
+            self.articles = articles
+            loadState = .loaded
         } catch {
-            print("DEBUG - error: \(error.localizedDescription)")
+            loadState = .failed
+            loadError = error
         }
     }
 }

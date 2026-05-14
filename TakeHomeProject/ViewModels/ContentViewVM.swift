@@ -17,6 +17,11 @@ class ContentViewVM {
     private(set) var loadState: LoadState = .loading
     private(set) var loadError: Error?
     var filterText: String = ""
+    var urlSession: DataFetching
+
+    init(urlSession: DataFetching = URLSession(configuration: .default)) {
+        self.urlSession = urlSession
+    }
 
     var filteredArticles: [Article] {
         if filterText.isEmpty {
@@ -30,11 +35,10 @@ class ContentViewVM {
 
     func loadArticles() async {
         let url = URL(string: "https://www.hackingwithswift.com/samples/news")!
-        let request = URLRequest(url: url)
         loadState = .loading
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await urlSession.data(from: url)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let articles = try decoder.decode([Article].self, from: data)

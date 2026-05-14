@@ -1,28 +1,15 @@
 //
-//  ContentView.swift
+//  ContentViewVM.swift
 //  TakeHomeProject
 //
-//  Created by Vinh Phan on 12/5/26.
+//  Created by Vinh Phan on 14/5/26.
 //
 
-import SwiftUI
+import Foundation
 
-struct ContentView: View {
-    @State var articles: [Article] = []
-
-    var body: some View {
-        NavigationStack {
-            List(articles) { article in
-                NavigationLink(article.title, value: article)
-            }
-            .navigationDestination(for: Article.self) { article in
-                Text(article.text)
-            }
-        }
-        .task {
-            await loadArticles()
-        }
-    }
+@Observable
+class ContentViewVM {
+    private(set) var articles: [Article] = []
 
     func loadArticles() async {
         let url = URL(string: "https://www.hackingwithswift.com/samples/news")!
@@ -31,6 +18,7 @@ struct ContentView: View {
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
             let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
             let articles = try decoder.decode([Article].self, from: data)
             await MainActor.run {
                 self.articles = articles
@@ -39,8 +27,4 @@ struct ContentView: View {
             print("DEBUG - error: \(error.localizedDescription)")
         }
     }
-}
-
-#Preview {
-    ContentView()
 }
